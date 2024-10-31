@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Scanner with jsQR</title>
+    <style>
+        #canvas {
+            display: none;
+        }
+        #message {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1 style="text-align: center;">Scan QR Code to Visit klix.ba</h1>
+<video id="video" width="300" height="300" style="display: block; margin: 0 auto;"></video>
+<canvas id="canvas" width="300" height="300"></canvas>
+<div id="message">Please scan a QR code</div>
+
+<script src="jsQR-master/dist/jsQR.js"></script>
+<script>
+    const video = document.getElementById('video');
+    const canvasElement = document.getElementById('canvas');
+    const canvas = canvasElement.getContext('2d');
+    const message = document.getElementById('message');
+
+    function startVideo() {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then((stream) => {
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true); // Required for iOS to play video inline
+                video.play();
+                requestAnimationFrame(scanQRCode);
+            })
+            .catch((err) => {
+                message.innerText = "Error accessing camera: " + err.message;
+            });
+    }
+
+    function scanQRCode() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            // Draw the video frame onto the canvas
+            canvasElement.width = video.videoWidth;
+            canvasElement.height = video.videoHeight;
+            canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+            
+            const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "dontInvert",
+            });
+
+            if (code) {
+                if (code.data === "https://klix.ba") {
+                    message.innerText = "QR Code recognized! Redirecting to klix.ba...";
+                    window.location.href = code.data;
+                } else {
+                    message.innerText = "Invalid QR Code. Please scan the correct code.";
+                }
+            } else {
+                message.innerText = "Scanning for QR code...";
+            }
+        }
+        requestAnimationFrame(scanQRCode);
+    }
+
+    // Start the video stream and QR scanning
+    startVideo();
+</script>
+
+</body>
+</html>
